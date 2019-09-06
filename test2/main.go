@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
 	"go.elastic.co/apm"
@@ -13,7 +14,7 @@ func main() {
 
 	defer apm.DefaultTracer.Flush(nil)
 
-	tracingId := "00-d305d61d2084153438420e8e5ef2aad1-d305d61d20841534-01"
+	tracingId := "00-66562ed6afda0a9b48e7a14852800279-66562ed6afda0a9b-01"
 
 	carrier := opentracing.TextMapCarrier{}
 	carrier[apmhttp.TraceparentHeader] = tracingId
@@ -29,6 +30,20 @@ func main() {
 	serverSpan := opentracing.StartSpan(
 		"test",
 		ext.RPCServerOption(wireContext))
+
+	writer := opentracing.TextMapCarrier{}
+	err = opentracing.GlobalTracer().Inject(
+		serverSpan.Context(),
+		opentracing.TextMap,
+		writer,
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	tracingId = writer[apmhttp.TraceparentHeader]
+	fmt.Println(tracingId)
 
 	defer serverSpan.Finish()
 }
